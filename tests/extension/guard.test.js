@@ -37,18 +37,18 @@ function makePage({ testMode = false, boot } = {}) {
     location: { href: 'https://shop.example/' },
   };
   g.globalThis = g;
-  if (testMode) g.__OPFS_GUARD_TEST__ = true;
-  if (boot) g.__opfsGuardBootConfig__ = boot;
+  if (testMode) g.__LAG_FIX_TEST__ = true;
+  if (boot) g.__lagFixBootConfig__ = boot;
   const ctx = vm.createContext(g);
   vm.runInContext(GUARD_SRC, ctx, { filename: 'guard.js' });
   const reports = [];
-  document.addEventListener('__opfs_guard_report__', e => reports.push(JSON.parse(e.detail)));
+  document.addEventListener('__lag_fix_report__', e => reports.push(JSON.parse(e.detail)));
   return { g, calls, reports };
 }
 
 test('decide(): allows at or below the cap, blocks or logs above it', () => {
   const { g } = makePage({ testMode: true });
-  const { decide } = g.__OPFS_GUARD_EXPORTS__;
+  const { decide } = g.__LAG_FIX_EXPORTS__;
   const cfg = { mode: 'block', capBytes: 10 * GiB };
   assert.equal(decide(0, cfg), 'allow');
   assert.equal(decide(10 * GiB, cfg), 'allow');
@@ -60,7 +60,7 @@ test('decide(): allows at or below the cap, blocks or logs above it', () => {
 
 test('impliedSize(): understands truncate/seek/write parameter objects only', () => {
   const { g } = makePage({ testMode: true });
-  const { impliedSize } = g.__OPFS_GUARD_EXPORTS__;
+  const { impliedSize } = g.__LAG_FIX_EXPORTS__;
   assert.equal(impliedSize({ type: 'truncate', size: 5 }), 5);
   assert.equal(impliedSize({ type: 'seek', position: 7 }), 7);
   assert.equal(impliedSize({ type: 'write', position: 10, data: new Uint8Array(4) }), 14);
@@ -142,7 +142,7 @@ test('reproduces the observed in-the-wild probe: it converges on the cap, not th
 
 test('boot config is applied, then removed from the page global', async () => {
   const { g, calls, reports } = makePage({ boot: { mode: 'log', capBytes: 1 * GiB, diagnostics: true } });
-  assert.equal(g.__opfsGuardBootConfig__, undefined);
+  assert.equal(g.__lagFixBootConfig__, undefined);
   const w = new g.FileSystemWritableFileStream();
   await w.truncate(2 * GiB); // log mode: allowed but reported
   assert.equal(calls.length, 1);

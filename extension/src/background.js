@@ -1,5 +1,5 @@
 /*
- * OPFS Guard — service worker.
+ * Browser Lag Fix — service worker.
  *
  * - Registers the page-world guard (plus the boot-config file matching the user's settings) as a
  *   dynamic content script, excluding allow-listed sites.
@@ -7,7 +7,7 @@
  */
 import { CAP_CHOICES_GIB, DEFAULTS, bootConfigFile, normalizeSettings, toMatchPatterns } from './settings.js';
 
-const SCRIPT_ID = 'opfs-guard-main';
+const SCRIPT_ID = 'browser-lag-fix-main';
 const MAX_EVENTS = 500;
 
 async function getSettings() {

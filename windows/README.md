@@ -1,4 +1,4 @@
-# OpfsGuard.Volume: Windows volume isolation
+# BrowserLagFix.Volume: Windows volume isolation
 
 Moves each Chromium profile's site file storage (`<User Data>\<Profile>\File System`) onto a small,
 dynamically expanding virtual disk, and leaves a junction in its place. A page can then reserve at
@@ -14,30 +14,30 @@ instead of the system drive.
 ## Install
 
 ```powershell
-Import-Module .\windows\OpfsGuard.Volume
-Install-OpfsGuardVolume                                   # all detected Chromium browsers, 20 GB
-Install-OpfsGuardVolume -Browser Edge -SizeGB 10          # just Edge, 10 GB
-Install-OpfsGuardVolume -WhatIf                           # show what would happen
+Import-Module .\windows\BrowserLagFix.Volume
+Install-BrowserLagFixVolume                                   # all detected Chromium browsers, 20 GB
+Install-BrowserLagFixVolume -Browser Edge -SizeGB 10          # just Edge, 10 GB
+Install-BrowserLagFixVolume -WhatIf                           # show what would happen
 ```
 
 What it does:
 
-1. Creates `C:\OpfsGuard\opfsguard.vhdx` (NTFS, expandable; it only uses disk space as sites store data)
-   and mounts it at `C:\OpfsGuard\mnt`.
-2. For each profile: moves `File System` to `C:\OpfsGuard\mnt\<Browser>-<id>\<Profile>\File System`,
+1. Creates `C:\BrowserLagFix\browserlagfix.vhdx` (NTFS, expandable; it only uses disk space as sites store data)
+   and mounts it at `C:\BrowserLagFix\mnt`.
+2. For each profile: moves `File System` to `C:\BrowserLagFix\mnt\<Browser>-<id>\<Profile>\File System`,
    verifies file count and bytes, then creates the junction. If anything fails, the data is moved back.
-3. Registers two scheduled tasks under `\OpfsGuard\`:
-   - `OpfsGuard-Attach` (SYSTEM, at startup) re-attaches the disk on every boot.
-   - `OpfsGuard-Reconcile` (you, at logon) redirects profiles created after install.
-4. Restricts `C:\OpfsGuard` to SYSTEM, Administrators and the installing user.
+3. Registers two scheduled tasks under `\BrowserLagFix\`:
+   - `BrowserLagFix-Attach` (SYSTEM, at startup) re-attaches the disk on every boot.
+   - `BrowserLagFix-Reconcile` (you, at logon) redirects profiles created after install.
+4. Restricts `C:\BrowserLagFix` to SYSTEM, Administrators and the installing user.
 
 Re-running is safe: already-redirected profiles and the existing disk are reused.
 
 ## Check
 
 ```powershell
-Get-OpfsGuardStatus
-Get-OpfsBrowserProfile | Format-Table Browser, Profile, State
+Get-BrowserLagFixStatus
+Get-BrowserLagFixProfile | Format-Table Browser, Profile, State
 ```
 
 `State` is one of `Redirected` (protected), `Local` (not yet moved), `Missing` (the profile has never
@@ -47,8 +47,8 @@ somewhere else; left alone).
 ## Uninstall
 
 ```powershell
-Uninstall-OpfsGuardVolume                 # move data back, remove tasks, delete the disk
-Uninstall-OpfsGuardVolume -KeepVirtualDisk
+Uninstall-BrowserLagFixVolume                 # move data back, remove tasks, delete the disk
+Uninstall-BrowserLagFixVolume -KeepVirtualDisk
 ```
 
 ## Supported browsers
@@ -60,9 +60,9 @@ automatically. For anything else, including WebView2 apps, pass `-UserDataRoot`.
 
 | Problem | Fix |
 |---|---|
-| Sites say storage is unavailable after a reboot | The disk didn't attach. Run `Mount-OpfsVolume` (elevated) and check the `OpfsGuard-Attach` task and `C:\OpfsGuard\opfsguard.log`. |
+| Sites say storage is unavailable after a reboot | The disk didn't attach. Run `Mount-BrowserLagFixVolume` (elevated) and check the `BrowserLagFix-Attach` task and `C:\BrowserLagFix\browserlagfix.log`. |
 | "Close these browsers first" | Quit the browser fully, including background apps (system tray), or end its processes. |
-| A profile shows `Local` after creating it | It will be moved at next logon, or run `Invoke-OpfsGuardReconcile` with the browser closed. |
+| A profile shows `Local` after creating it | It will be moved at next logon, or run `Invoke-BrowserLagFixReconcile` with the browser closed. |
 
 ## Testing
 

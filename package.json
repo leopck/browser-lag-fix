@@ -1,5 +1,5 @@
 {
-  "name": "opfs-guard",
+  "name": "browser-lag-fix",
   "version": "1.0.0",
   "private": true,
   "description": "Protects Windows PCs from websites that reserve huge OPFS files in Chromium browsers.",

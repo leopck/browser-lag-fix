@@ -41,6 +41,6 @@ pwsh tests/e2e/Invoke-ExtensionE2E.ps1
 
 ## Releasing
 
-1. Bump `extension/manifest.json`, `package.json` and `windows/OpfsGuard.Volume/OpfsGuard.Volume.psd1`
+1. Bump `extension/manifest.json`, `package.json` and `windows/BrowserLagFix.Volume/BrowserLagFix.Volume.psd1`
    to the same version, and move the *Unreleased* changelog entries under it.
 2. Tag `vX.Y.Z` and push the tag. The Release workflow builds both packages, with checksums, and publishes them.

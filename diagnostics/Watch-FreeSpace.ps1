@@ -8,11 +8,11 @@
     Polls free space every -IntervalSeconds. When it falls -DropGB or more below the highest reading
     of the last five minutes, it logs a DIP START with recently written Chromium site-storage folders
     (mapped to their site origin) and, if -SaveTrace is given, stops/saves/re-arms a WPR trace that
-    was started with diagnostics\opfs-guard.wprp in memory (flight-recorder) mode.
+    was started with diagnostics\browser-lag-fix.wprp in memory (flight-recorder) mode.
 
 .EXAMPLE
     # Elevated, once:
-    wpr -start .\diagnostics\opfs-guard.wprp
+    wpr -start .\diagnostics\browser-lag-fix.wprp
     .\diagnostics\Watch-FreeSpace.ps1 -SaveTrace -OutputDirectory $env:USERPROFILE\OpfsTraces
 
 .NOTES
@@ -24,9 +24,9 @@ param(
     [ValidatePattern('^[A-Za-z]$')][string]$Drive = $env:SystemDrive.TrimEnd(':'),
     [ValidateRange(1, 100000)][double]$DropGB = 50,
     [ValidateRange(1, 60)][int]$IntervalSeconds = 2,
-    [string]$OutputDirectory = (Join-Path $env:USERPROFILE 'OpfsGuardDiagnostics'),
+    [string]$OutputDirectory = (Join-Path $env:USERPROFILE 'BrowserLagFixDiagnostics'),
     [switch]$SaveTrace,
-    [string]$WprProfile = (Join-Path $PSScriptRoot 'opfs-guard.wprp')
+    [string]$WprProfile = (Join-Path $PSScriptRoot 'browser-lag-fix.wprp')
 )
 
 Set-StrictMode -Version Latest

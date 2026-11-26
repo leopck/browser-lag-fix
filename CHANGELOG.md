@@ -10,7 +10,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ### Added
 - Browser extension (MV3): refuses OPFS / legacy FileSystem growth beyond a cap (default 10 GiB) with
   `QuotaExceededError`. Includes a per-site allow-list, log-only mode, diagnostics stacks and JSON export.
-- `OpfsGuard.Volume` PowerShell module: moves Chromium site file storage onto a size-capped VHDX, with
+- `BrowserLagFix.Volume` PowerShell module: moves Chromium site file storage onto a size-capped VHDX, with
   verified moves, a startup attach task, a logon reconcile task, status reporting and full uninstall.
 - `repro/probe.html` and `repro/serve.py` minimal reproduction.
 - Diagnostics: WPR flight-recorder profile and free-space dip watcher.

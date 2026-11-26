@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please report security issues **privately** through
-[GitHub security advisories](https://github.com/leopck/opfs-guard/security/advisories/new),
+[GitHub security advisories](https://github.com/leopck/browser-lag-fix/security/advisories/new),
 not in public issues. Include steps to reproduce and the affected component and version.
 Expect an acknowledgement within 7 days.
 

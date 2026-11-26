@@ -22,11 +22,11 @@ jobs:
         run: |
           tag="${GITHUB_REF_NAME#v}"
           ext=$(node -p "require('./extension/manifest.json').version")
-          mod=$(grep -oP "ModuleVersion\s*=\s*'\K[^']+" windows/OpfsGuard.Volume/OpfsGuard.Volume.psd1)
+          mod=$(grep -oP "ModuleVersion\s*=\s*'\K[^']+" windows/BrowserLagFix.Volume/BrowserLagFix.Volume.psd1)
           [ "$tag" = "$ext" ] && [ "$tag" = "$mod" ] || { echo "tag $tag, extension $ext, module $mod"; exit 1; }
       - name: Package Windows module
         run: |
-          cd windows && zip -r "../dist/OpfsGuard.Volume-${GITHUB_REF_NAME#v}.zip" OpfsGuard.Volume README.md
+          cd windows && zip -r "../dist/BrowserLagFix.Volume-${GITHUB_REF_NAME#v}.zip" BrowserLagFix.Volume README.md
       - name: Checksums
         run: cd dist && sha256sum *.zip > SHA256SUMS.txt && cat SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2

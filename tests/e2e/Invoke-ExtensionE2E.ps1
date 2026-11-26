@@ -30,7 +30,7 @@ $ErrorActionPreference = 'Stop'
 
 $repo = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $ext = Join-Path $repo 'extension'
-$work = Join-Path ([IO.Path]::GetTempPath()) ('opfsguard-e2e-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
+$work = Join-Path ([IO.Path]::GetTempPath()) ('browserlagfix-e2e-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
 $results = Join-Path $work 'results.jsonl'
 New-Item -ItemType Directory -Path $work | Out-Null
 if (-not (Test-Path $BrowserPath)) { throw "Browser not found: $BrowserPath" }

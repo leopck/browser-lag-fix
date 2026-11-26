@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in OPFS Guard doesn't work as described
+description: Something in Browser Lag Fix doesn't work as described
 labels: [bug]
 body:
   - type: dropdown
@@ -34,5 +34,5 @@ body:
     id: logs
     attributes:
       label: Logs
-      description: "Extension: Settings → Export log. Windows module: output of Get-OpfsGuardStatus and C:\\OpfsGuard\\opfsguard.log. Remove anything private."
+      description: "Extension: Settings → Export log. Windows module: output of Get-BrowserLagFixStatus and C:\\BrowserLagFix\\browserlagfix.log. Remove anything private."
       render: text

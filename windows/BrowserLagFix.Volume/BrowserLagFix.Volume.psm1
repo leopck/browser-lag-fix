@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 <#
-    OpfsGuard.Volume - confine Chromium site file storage to a small virtual disk.
+    BrowserLagFix.Volume - confine Chromium site file storage to a small virtual disk.
 
     Chromium-based browsers keep each profile's sandboxed site files (Origin Private File System
     and the legacy webkitRequestFileSystem store) in "<User Data>\<Profile>\File System". On Windows
@@ -13,12 +13,12 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$script:StateFileName = 'opfsguard.json'
-$script:AttachTaskName = 'OpfsGuard-Attach'
-$script:ReconcileTaskName = 'OpfsGuard-Reconcile'
-$script:TaskPath = '\OpfsGuard\'
-$script:VolumeLabel = 'OpfsGuard'
-$script:DefaultRoot = Join-Path $env:SystemDrive 'OpfsGuard'
+$script:StateFileName = 'browserlagfix.json'
+$script:AttachTaskName = 'BrowserLagFix-Attach'
+$script:ReconcileTaskName = 'BrowserLagFix-Reconcile'
+$script:TaskPath = '\BrowserLagFix\'
+$script:VolumeLabel = 'BrowserLagFix'
+$script:DefaultRoot = Join-Path $env:SystemDrive 'BrowserLagFix'
 
 # Known Chromium browsers: user-data root (relative to %LOCALAPPDATA%) and the process image name.
 $script:KnownBrowsers = [ordered]@{
@@ -35,43 +35,43 @@ $script:KnownBrowsers = [ordered]@{
 
 #region helpers --------------------------------------------------------------------------------
 
-function Write-OpfsLog {
+function Write-LagFixLog {
     param([Parameter(Mandatory)][string]$Message, [string]$Root = $script:DefaultRoot, [ValidateSet('INFO', 'WARN', 'ERROR')][string]$Level = 'INFO')
     $line = '{0:yyyy-MM-dd HH:mm:ss} [{1}] {2}' -f (Get-Date), $Level, $Message
     Write-Verbose $line
     if (Test-Path -LiteralPath $Root) {
-        try { Add-Content -LiteralPath (Join-Path $Root 'opfsguard.log') -Value $line -Encoding utf8 } catch { Write-Verbose "log write failed: $_" }
+        try { Add-Content -LiteralPath (Join-Path $Root 'browserlagfix.log') -Value $line -Encoding utf8 } catch { Write-Verbose "log write failed: $_" }
     }
 }
 
-function Test-OpfsIsAdmin {
+function Test-LagFixIsAdmin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
     return ([Security.Principal.WindowsPrincipal]$id).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Assert-OpfsAdmin {
-    if (-not (Test-OpfsIsAdmin)) { throw 'This operation needs an elevated (Run as administrator) PowerShell.' }
+function Assert-LagFixAdmin {
+    if (-not (Test-LagFixIsAdmin)) { throw 'This operation needs an elevated (Run as administrator) PowerShell.' }
 }
 
-function Get-OpfsState {
+function Get-LagFixState {
     param([Parameter(Mandatory)][string]$Root)
     $p = Join-Path $Root $script:StateFileName
     if (-not (Test-Path -LiteralPath $p)) { return $null }
     return Get-Content -LiteralPath $p -Raw | ConvertFrom-Json
 }
 
-function Save-OpfsState {
+function Save-LagFixState {
     param([Parameter(Mandatory)][string]$Root, [Parameter(Mandatory)]$State)
     $State | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $Root $script:StateFileName) -Encoding utf8
 }
 
-function Get-OpfsItemStatistic {
+function Get-LagFixItemStatistic {
     param([Parameter(Mandatory)][string]$Path)
     $files = @(Get-ChildItem -LiteralPath $Path -Recurse -Force -File -ErrorAction SilentlyContinue)
     [pscustomobject]@{ Count = $files.Count; Bytes = [long](($files | Measure-Object Length -Sum).Sum) }
 }
 
-function Get-OpfsLinkTarget {
+function Get-LagFixLinkTarget {
     param([Parameter(Mandatory)][string]$Path)
     $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
     if (-not $item -or -not $item.LinkType) { return $null }
@@ -80,14 +80,14 @@ function Get-OpfsLinkTarget {
     return ([string]$t) -replace '^\\\\\?\\', ''
 }
 
-function Move-OpfsDirectory {
+function Move-LagFixDirectory {
     <# Moves a directory tree with verification; never deletes the source until the copy matches. #>
     param([Parameter(Mandatory)][string]$Source, [Parameter(Mandatory)][string]$Destination)
-    $before = Get-OpfsItemStatistic -Path $Source
+    $before = Get-LagFixItemStatistic -Path $Source
     New-Item -ItemType Directory -Force -Path $Destination | Out-Null
     $null = & robocopy.exe $Source $Destination /E /COPY:DAT /DCOPY:DAT /R:2 /W:1 /NFL /NDL /NJH /NJS /NP
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed copying '$Source' (exit $LASTEXITCODE)." }
-    $after = Get-OpfsItemStatistic -Path $Destination
+    $after = Get-LagFixItemStatistic -Path $Destination
     if ($after.Count -lt $before.Count -or $after.Bytes -lt $before.Bytes) {
         throw "Verification failed for '$Source': copied $($after.Count)/$($before.Count) files, $($after.Bytes)/$($before.Bytes) bytes. Source left untouched."
     }
@@ -99,7 +99,7 @@ function Move-OpfsDirectory {
 
 #region discovery ------------------------------------------------------------------------------
 
-function Get-OpfsBrowserProfile {
+function Get-BrowserLagFixProfile {
     <#
     .SYNOPSIS
         Lists Chromium browser profiles and where each one's site file storage lives.
@@ -108,7 +108,7 @@ function Get-OpfsBrowserProfile {
     .PARAMETER UserDataRoot
         Inspect an explicit "User Data" directory instead (reported with Browser = 'Custom').
     .PARAMETER Root
-        OpfsGuard install root, used to classify redirected profiles. Default: %SystemDrive%\OpfsGuard.
+        BrowserLagFix install root, used to classify redirected profiles. Default: %SystemDrive%\BrowserLagFix.
     .OUTPUTS
         Objects with Browser, Profile, UserDataRoot, FileSystemPath, State, Target.
         State is one of: Local, Redirected, RedirectedElsewhere, Missing.
@@ -138,12 +138,12 @@ function Get-OpfsBrowserProfile {
             Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'Preferences') }
         foreach ($p in $profiles) {
             $fs = Join-Path $p.FullName 'File System'
-            $target = Get-OpfsLinkTarget -Path $fs
+            $target = Get-LagFixLinkTarget -Path $fs
             $state = if (-not (Test-Path -LiteralPath $fs)) { if ($target) { 'Redirected' } else { 'Missing' } }
                      elseif ($target) { if ($target.StartsWith($mount, [StringComparison]::OrdinalIgnoreCase)) { 'Redirected' } else { 'RedirectedElsewhere' } }
                      else { 'Local' }
             [pscustomobject]@{
-                PSTypeName     = 'OpfsGuard.Profile'
+                PSTypeName     = 'BrowserLagFix.Profile'
                 Browser        = $r.Browser
                 Profile        = $p.Name
                 UserDataRoot   = $r.Path
@@ -156,7 +156,7 @@ function Get-OpfsBrowserProfile {
     }
 }
 
-function Test-OpfsBrowserRunning {
+function Test-LagFixBrowserRunning {
     <# True if any process for the given browser profile set is running. Custom roots are never considered running. #>
     param([Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Profiles)
     $names = @($Profiles | Where-Object Process | Select-Object -ExpandProperty Process -Unique)
@@ -168,22 +168,22 @@ function Test-OpfsBrowserRunning {
 
 #region volume ---------------------------------------------------------------------------------
 
-function Mount-OpfsVolume {
+function Mount-BrowserLagFixVolume {
     <#
     .SYNOPSIS
-        Attaches the OpfsGuard VHDX and makes sure it is mounted at <Root>\mnt. Idempotent.
+        Attaches the BrowserLagFix VHDX and makes sure it is mounted at <Root>\mnt. Idempotent.
         Used by the startup scheduled task; needs administrator rights.
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param([string]$Root = $script:DefaultRoot)
-    Assert-OpfsAdmin
-    $state = Get-OpfsState -Root $Root
-    if (-not $state) { throw "No OpfsGuard installation found at '$Root'." }
+    Assert-LagFixAdmin
+    $state = Get-LagFixState -Root $Root
+    if (-not $state) { throw "No BrowserLagFix installation found at '$Root'." }
     $img = Get-DiskImage -ImagePath $state.VhdPath
     if (-not $img.Attached) {
         if ($PSCmdlet.ShouldProcess($state.VhdPath, 'Attach virtual disk')) {
             $img = Mount-DiskImage -ImagePath $state.VhdPath -NoDriveLetter -PassThru
-            Write-OpfsLog -Root $Root "Attached $($state.VhdPath)"
+            Write-LagFixLog -Root $Root "Attached $($state.VhdPath)"
         }
     }
     $part = $img | Get-Disk | Get-Partition | Where-Object Type -ne 'Reserved' | Select-Object -First 1
@@ -192,15 +192,15 @@ function Mount-OpfsVolume {
     if ($mount -notin $paths -and $PSCmdlet.ShouldProcess($mount, 'Add mount point')) {
         New-Item -ItemType Directory -Force -Path $mount | Out-Null
         Add-PartitionAccessPath -InputObject $part -AccessPath "$mount\"
-        Write-OpfsLog -Root $Root "Mounted volume at $mount"
+        Write-LagFixLog -Root $Root "Mounted volume at $mount"
     }
 }
 
-function New-OpfsVirtualDisk {
+function New-LagFixVirtualDisk {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][string]$VhdPath, [Parameter(Mandatory)][int]$SizeMB, [Parameter(Mandatory)][string]$MountPath)
     if (-not $PSCmdlet.ShouldProcess($VhdPath, "Create and format $SizeMB MB virtual disk")) { return }
-    $script = Join-Path ([IO.Path]::GetTempPath()) ("opfsguard-create-{0}.txt" -f [guid]::NewGuid())
+    $script = Join-Path ([IO.Path]::GetTempPath()) ("browserlagfix-create-{0}.txt" -f [guid]::NewGuid())
     "create vdisk file=`"$VhdPath`" maximum=$SizeMB type=expandable" | Set-Content -LiteralPath $script -Encoding ascii
     try {
         $out = & diskpart.exe /s $script
@@ -214,7 +214,7 @@ function New-OpfsVirtualDisk {
     New-Item -ItemType Directory -Force -Path $MountPath | Out-Null
     Add-PartitionAccessPath -InputObject $part -AccessPath "$MountPath\"
     # Marker proves the real volume (not the empty mount-point folder) is present.
-    Set-Content -LiteralPath (Join-Path $MountPath '.opfsguard-volume') -Value 'OpfsGuard site-storage volume. Do not delete.' -Encoding ascii
+    Set-Content -LiteralPath (Join-Path $MountPath '.browserlagfix-volume') -Value 'BrowserLagFix site-storage volume. Do not delete.' -Encoding ascii
     $user = "$env:USERDOMAIN\$env:USERNAME"
     $null = & icacls.exe "$MountPath\" /grant "${user}:(OI)(CI)F" /Q
 }
@@ -223,7 +223,7 @@ function New-OpfsVirtualDisk {
 
 #region profile moves --------------------------------------------------------------------------
 
-function Get-OpfsProfileKey {
+function Get-BrowserLagFixProfileKey {
     <# Stable, collision-free folder name for a profile on the volume, e.g. "Edge-1a2b3c4d\Default". #>
     param([Parameter(Mandatory)]$ProfileInfo)
     $sha = [Security.Cryptography.SHA256]::Create()
@@ -233,18 +233,18 @@ function Get-OpfsProfileKey {
     return Join-Path "$label-$hash" $ProfileInfo.Profile
 }
 
-function Test-OpfsVolumeMounted {
+function Test-LagFixVolumeMounted {
     param([Parameter(Mandatory)][string]$Root)
-    return Test-Path -LiteralPath (Join-Path $Root 'mnt\.opfsguard-volume')
+    return Test-Path -LiteralPath (Join-Path $Root 'mnt\.browserlagfix-volume')
 }
 
-function Move-OpfsProfileToVolume {
+function Move-LagFixProfileToVolume {
     param([Parameter(Mandatory)]$ProfileInfo, [Parameter(Mandatory)][string]$Root)
-    if (-not (Test-OpfsVolumeMounted -Root $Root)) { throw "The OpfsGuard volume is not mounted at '$Root\mnt'." }
-    $dest = Join-Path (Join-Path (Join-Path $Root 'mnt') (Get-OpfsProfileKey -ProfileInfo $ProfileInfo)) 'File System'
+    if (-not (Test-LagFixVolumeMounted -Root $Root)) { throw "The BrowserLagFix volume is not mounted at '$Root\mnt'." }
+    $dest = Join-Path (Join-Path (Join-Path $Root 'mnt') (Get-BrowserLagFixProfileKey -ProfileInfo $ProfileInfo)) 'File System'
     $src = $ProfileInfo.FileSystemPath
     if (Test-Path -LiteralPath $src) {
-        $stats = Move-OpfsDirectory -Source $src -Destination $dest
+        $stats = Move-LagFixDirectory -Source $src -Destination $dest
     } else {
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
         $stats = [pscustomobject]@{ Count = 0; Bytes = 0 }
@@ -253,37 +253,37 @@ function Move-OpfsProfileToVolume {
         New-Item -ItemType Junction -Path $src -Target $dest | Out-Null
     } catch {
         # Put the data back so the browser keeps working.
-        Move-OpfsDirectory -Source $dest -Destination $src | Out-Null
+        Move-LagFixDirectory -Source $dest -Destination $src | Out-Null
         throw "Could not create junction at '$src': $_"
     }
-    Write-OpfsLog -Root $Root "Redirected $($ProfileInfo.Browser)/$($ProfileInfo.Profile): $($stats.Count) files, $($stats.Bytes) bytes -> $dest"
+    Write-LagFixLog -Root $Root "Redirected $($ProfileInfo.Browser)/$($ProfileInfo.Profile): $($stats.Count) files, $($stats.Bytes) bytes -> $dest"
     return $dest
 }
 
-function Restore-OpfsProfileFromVolume {
+function Restore-LagFixProfileFromVolume {
     param([Parameter(Mandatory)]$ProfileInfo, [Parameter(Mandatory)][string]$Root)
     $src = $ProfileInfo.FileSystemPath
     $target = $ProfileInfo.Target
     # Remove only the junction itself, never the target's contents.
     [IO.Directory]::Delete($src, $false)
     if ($target -and (Test-Path -LiteralPath $target)) {
-        Move-OpfsDirectory -Source $target -Destination $src | Out-Null
+        Move-LagFixDirectory -Source $target -Destination $src | Out-Null
     } else {
         New-Item -ItemType Directory -Force -Path $src | Out-Null
     }
-    Write-OpfsLog -Root $Root "Restored $($ProfileInfo.Browser)/$($ProfileInfo.Profile) to $src"
+    Write-LagFixLog -Root $Root "Restored $($ProfileInfo.Browser)/$($ProfileInfo.Profile) to $src"
 }
 
 #endregion
 
 #region public commands ------------------------------------------------------------------------
 
-function Install-OpfsGuardVolume {
+function Install-BrowserLagFixVolume {
     <#
     .SYNOPSIS
         Creates a size-capped virtual disk and moves Chromium site file storage onto it.
     .DESCRIPTION
-        1. Creates <Root>\opfsguard.vhdx (dynamically expanding, NTFS) and mounts it at <Root>\mnt.
+        1. Creates <Root>\browserlagfix.vhdx (dynamically expanding, NTFS) and mounts it at <Root>\mnt.
         2. Registers a startup task (SYSTEM) that re-attaches it on every boot, and a logon task that
            redirects profiles created later.
         3. For every profile of the selected browsers, moves "File System" onto the volume and leaves
@@ -292,7 +292,7 @@ function Install-OpfsGuardVolume {
     .PARAMETER SizeGB
         Capacity of the virtual disk. Bounds the largest file a site can create. Default 20.
     .EXAMPLE
-        Install-OpfsGuardVolume -Browser Edge,Chrome
+        Install-BrowserLagFixVolume -Browser Edge,Chrome
     #>
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     param(
@@ -302,28 +302,28 @@ function Install-OpfsGuardVolume {
         [string[]]$UserDataRoot,
         [switch]$SkipScheduledTasks
     )
-    Assert-OpfsAdmin
+    Assert-LagFixAdmin
     $Root = [IO.Path]::GetFullPath($Root)
-    $profiles = @(Get-OpfsBrowserProfile -Browser $Browser -UserDataRoot $UserDataRoot -Root $Root)
+    $profiles = @(Get-BrowserLagFixProfile -Browser $Browser -UserDataRoot $UserDataRoot -Root $Root)
     if (-not $profiles) { throw 'No Chromium browser profiles found.' }
-    if (Test-OpfsBrowserRunning -Profiles $profiles) {
+    if (Test-LagFixBrowserRunning -Profiles $profiles) {
         throw "Close these browsers first (including background processes): $((($profiles | Where-Object Process).Browser | Select-Object -Unique) -join ', ')."
     }
 
-    $vhd = Join-Path $Root 'opfsguard.vhdx'
+    $vhd = Join-Path $Root 'browserlagfix.vhdx'
     $mount = Join-Path $Root 'mnt'
-    $state = Get-OpfsState -Root $Root
+    $state = Get-LagFixState -Root $Root
     if (-not $state) {
         if (-not $PSCmdlet.ShouldProcess($vhd, "Create $SizeGB GB virtual disk")) { return }
         New-Item -ItemType Directory -Force -Path $Root | Out-Null
-        New-OpfsVirtualDisk -VhdPath $vhd -SizeMB ([int][math]::Ceiling($SizeGB * 1024)) -MountPath $mount
+        New-LagFixVirtualDisk -VhdPath $vhd -SizeMB ([int][math]::Ceiling($SizeGB * 1024)) -MountPath $mount
         $state = [pscustomobject]@{ Version = 1; VhdPath = $vhd; MountPath = $mount; SizeGB = $SizeGB; Created = (Get-Date).ToString('o'); UserDataRoots = @() }
-        Write-OpfsLog -Root $Root "Created $vhd ($SizeGB GB) mounted at $mount"
+        Write-LagFixLog -Root $Root "Created $vhd ($SizeGB GB) mounted at $mount"
     } else {
-        Mount-OpfsVolume -Root $Root
+        Mount-BrowserLagFixVolume -Root $Root
     }
     $state.UserDataRoots = @(@($state.UserDataRoots) + @($profiles.UserDataRoot) | Select-Object -Unique)
-    Save-OpfsState -Root $Root -State $state
+    Save-LagFixState -Root $Root -State $state
 
     # Lock the install root down to SYSTEM, Administrators and the installing user. No /T, so the
     # change propagates by inheritance but never reaches through the mount point into the volume.
@@ -335,85 +335,85 @@ function Install-OpfsGuardVolume {
             'Redirected'          { Write-Verbose "$($p.Browser)/$($p.Profile) already redirected" }
             'RedirectedElsewhere' { Write-Warning "$($p.Browser)/$($p.Profile): 'File System' is already a link to '$($p.Target)'; leaving it alone." }
             default {
-                if ($PSCmdlet.ShouldProcess("$($p.Browser)/$($p.Profile)", 'Move site file storage onto the OpfsGuard volume')) {
-                    $null = Move-OpfsProfileToVolume -ProfileInfo $p -Root $Root
+                if ($PSCmdlet.ShouldProcess("$($p.Browser)/$($p.Profile)", 'Move site file storage onto the BrowserLagFix volume')) {
+                    $null = Move-LagFixProfileToVolume -ProfileInfo $p -Root $Root
                 }
             }
         }
     }
 
-    if (-not $SkipScheduledTasks -and $PSCmdlet.ShouldProcess('Task Scheduler', 'Register OpfsGuard tasks')) {
-        Register-OpfsGuardTask -Root $Root
+    if (-not $SkipScheduledTasks -and $PSCmdlet.ShouldProcess('Task Scheduler', 'Register BrowserLagFix tasks')) {
+        Register-BrowserLagFixTask -Root $Root
     }
-    Get-OpfsGuardStatus -Root $Root
+    Get-BrowserLagFixStatus -Root $Root
 }
 
-function Register-OpfsGuardTask {
+function Register-BrowserLagFixTask {
     param([Parameter(Mandatory)][string]$Root)
     # Run the module from a copy inside the install root so tasks don't depend on where the repo lives.
-    $modDest = Join-Path $Root 'module\OpfsGuard.Volume'
+    $modDest = Join-Path $Root 'module\BrowserLagFix.Volume'
     New-Item -ItemType Directory -Force -Path $modDest | Out-Null
     Copy-Item -Path (Join-Path $PSScriptRoot '*') -Destination $modDest -Recurse -Force
-    $psd1 = Join-Path $modDest 'OpfsGuard.Volume.psd1'
+    $psd1 = Join-Path $modDest 'BrowserLagFix.Volume.psd1'
     $ps = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $common = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -Command'
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
 
-    $attach = New-ScheduledTaskAction -Execute $ps -Argument "$common `"Import-Module '$psd1'; Mount-OpfsVolume -Root '$Root'`""
+    $attach = New-ScheduledTaskAction -Execute $ps -Argument "$common `"Import-Module '$psd1'; Mount-BrowserLagFixVolume -Root '$Root'`""
     Register-ScheduledTask -TaskPath $script:TaskPath -TaskName $script:AttachTaskName -Action $attach -Trigger (New-ScheduledTaskTrigger -AtStartup) `
         -Principal (New-ScheduledTaskPrincipal -UserId 'S-1-5-18' -LogonType ServiceAccount -RunLevel Highest) -Settings $settings `
-        -Description 'OpfsGuard: attach the site-storage virtual disk at boot.' -Force | Out-Null
+        -Description 'BrowserLagFix: attach the site-storage virtual disk at boot.' -Force | Out-Null
 
     $user = "$env:USERDOMAIN\$env:USERNAME"
-    $reconcile = New-ScheduledTaskAction -Execute $ps -Argument "$common `"Import-Module '$psd1'; Invoke-OpfsGuardReconcile -Root '$Root'`""
+    $reconcile = New-ScheduledTaskAction -Execute $ps -Argument "$common `"Import-Module '$psd1'; Invoke-BrowserLagFixReconcile -Root '$Root'`""
     Register-ScheduledTask -TaskPath $script:TaskPath -TaskName $script:ReconcileTaskName -Action $reconcile -Trigger (New-ScheduledTaskTrigger -AtLogOn -User $user) `
         -Principal (New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Highest) -Settings $settings `
-        -Description 'OpfsGuard: redirect site storage of browser profiles created since install.' -Force | Out-Null
-    Write-OpfsLog -Root $Root 'Registered scheduled tasks'
+        -Description 'BrowserLagFix: redirect site storage of browser profiles created since install.' -Force | Out-Null
+    Write-LagFixLog -Root $Root 'Registered scheduled tasks'
 }
 
-function Invoke-OpfsGuardReconcile {
+function Invoke-BrowserLagFixReconcile {
     <#
     .SYNOPSIS
         Redirects profiles created since install. Skips browsers that are running. Run at logon.
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param([string]$Root = $script:DefaultRoot)
-    $state = Get-OpfsState -Root $Root
-    if (-not $state) { throw "No OpfsGuard installation found at '$Root'." }
-    if (-not (Test-OpfsVolumeMounted -Root $Root)) {
-        if (Test-OpfsIsAdmin) { Mount-OpfsVolume -Root $Root } else { Write-OpfsLog -Root $Root -Level WARN 'Volume not mounted; skipping reconcile.'; return }
+    $state = Get-LagFixState -Root $Root
+    if (-not $state) { throw "No BrowserLagFix installation found at '$Root'." }
+    if (-not (Test-LagFixVolumeMounted -Root $Root)) {
+        if (Test-LagFixIsAdmin) { Mount-BrowserLagFixVolume -Root $Root } else { Write-LagFixLog -Root $Root -Level WARN 'Volume not mounted; skipping reconcile.'; return }
     }
-    $profiles = @(Get-OpfsBrowserProfile -UserDataRoot $state.UserDataRoots -Root $Root)
+    $profiles = @(Get-BrowserLagFixProfile -UserDataRoot $state.UserDataRoots -Root $Root)
     $pending = @($profiles | Where-Object { $_.State -in 'Local', 'Missing' })
     foreach ($group in ($pending | Group-Object Browser)) {
-        if (Test-OpfsBrowserRunning -Profiles $group.Group) { Write-OpfsLog -Root $Root -Level WARN "$($group.Name) is running; will retry at next logon."; continue }
+        if (Test-LagFixBrowserRunning -Profiles $group.Group) { Write-LagFixLog -Root $Root -Level WARN "$($group.Name) is running; will retry at next logon."; continue }
         foreach ($p in $group.Group) {
             if ($PSCmdlet.ShouldProcess("$($p.Browser)/$($p.Profile)", 'Redirect site file storage')) {
-                try { $null = Move-OpfsProfileToVolume -ProfileInfo $p -Root $Root } catch { Write-OpfsLog -Root $Root -Level ERROR "$($p.Browser)/$($p.Profile): $_" }
+                try { $null = Move-LagFixProfileToVolume -ProfileInfo $p -Root $Root } catch { Write-LagFixLog -Root $Root -Level ERROR "$($p.Browser)/$($p.Profile): $_" }
             }
         }
     }
 }
 
-function Get-OpfsGuardStatus {
+function Get-BrowserLagFixStatus {
     <#
     .SYNOPSIS
         Shows whether the virtual disk is attached, its free space, scheduled tasks, and each profile's state.
     #>
     [CmdletBinding()]
     param([string]$Root = $script:DefaultRoot)
-    $state = Get-OpfsState -Root $Root
-    if (-not $state) { Write-Warning "OpfsGuard is not installed at '$Root'."; return }
+    $state = Get-LagFixState -Root $Root
+    if (-not $state) { Write-Warning "BrowserLagFix is not installed at '$Root'."; return }
     $img = Get-DiskImage -ImagePath $state.VhdPath -ErrorAction SilentlyContinue
     $vol = if ($img -and $img.Attached) { $img | Get-Disk | Get-Partition | Get-Volume -ErrorAction SilentlyContinue | Select-Object -First 1 }
     $tasks = @($script:AttachTaskName, $script:ReconcileTaskName) | ForEach-Object {
         $t = Get-ScheduledTask -TaskPath $script:TaskPath -TaskName $_ -ErrorAction SilentlyContinue
         '{0}={1}' -f $_, $(if ($t) { $t.State } else { 'missing' })
     }
-    $profiles = @(Get-OpfsBrowserProfile -UserDataRoot $state.UserDataRoots -Root $Root)
+    $profiles = @(Get-BrowserLagFixProfile -UserDataRoot $state.UserDataRoots -Root $Root)
     [pscustomobject]@{
-        PSTypeName  = 'OpfsGuard.Status'
+        PSTypeName  = 'BrowserLagFix.Status'
         Root        = $Root
         VhdPath     = $state.VhdPath
         Attached    = [bool]($img -and $img.Attached)
@@ -425,7 +425,7 @@ function Get-OpfsGuardStatus {
     }
 }
 
-function Uninstall-OpfsGuardVolume {
+function Uninstall-BrowserLagFixVolume {
     <#
     .SYNOPSIS
         Moves site file storage back to each profile, removes tasks, detaches and deletes the virtual disk.
@@ -434,16 +434,16 @@ function Uninstall-OpfsGuardVolume {
     #>
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     param([string]$Root = $script:DefaultRoot, [switch]$KeepVirtualDisk)
-    Assert-OpfsAdmin
-    $state = Get-OpfsState -Root $Root
-    if (-not $state) { throw "No OpfsGuard installation found at '$Root'." }
-    Mount-OpfsVolume -Root $Root
-    $profiles = @(Get-OpfsBrowserProfile -UserDataRoot $state.UserDataRoots -Root $Root | Where-Object State -eq 'Redirected')
-    if (Test-OpfsBrowserRunning -Profiles $profiles) { throw 'Close all browsers using OpfsGuard first.' }
+    Assert-LagFixAdmin
+    $state = Get-LagFixState -Root $Root
+    if (-not $state) { throw "No BrowserLagFix installation found at '$Root'." }
+    Mount-BrowserLagFixVolume -Root $Root
+    $profiles = @(Get-BrowserLagFixProfile -UserDataRoot $state.UserDataRoots -Root $Root | Where-Object State -eq 'Redirected')
+    if (Test-LagFixBrowserRunning -Profiles $profiles) { throw 'Close all browsers using BrowserLagFix first.' }
     foreach ($p in $profiles) {
-        if ($PSCmdlet.ShouldProcess("$($p.Browser)/$($p.Profile)", 'Move site file storage back')) { Restore-OpfsProfileFromVolume -ProfileInfo $p -Root $Root }
+        if ($PSCmdlet.ShouldProcess("$($p.Browser)/$($p.Profile)", 'Move site file storage back')) { Restore-LagFixProfileFromVolume -ProfileInfo $p -Root $Root }
     }
-    if ($PSCmdlet.ShouldProcess('Task Scheduler', 'Remove OpfsGuard tasks')) {
+    if ($PSCmdlet.ShouldProcess('Task Scheduler', 'Remove BrowserLagFix tasks')) {
         foreach ($t in $script:AttachTaskName, $script:ReconcileTaskName) {
             Unregister-ScheduledTask -TaskPath $script:TaskPath -TaskName $t -Confirm:$false -ErrorAction SilentlyContinue
         }
@@ -461,4 +461,4 @@ function Uninstall-OpfsGuardVolume {
 
 #endregion
 
-Export-ModuleMember -Function Install-OpfsGuardVolume, Uninstall-OpfsGuardVolume, Get-OpfsGuardStatus, Get-OpfsBrowserProfile, Mount-OpfsVolume, Invoke-OpfsGuardReconcile
+Export-ModuleMember -Function Install-BrowserLagFixVolume, Uninstall-BrowserLagFixVolume, Get-BrowserLagFixStatus, Get-BrowserLagFixProfile, Mount-BrowserLagFixVolume, Invoke-BrowserLagFixReconcile

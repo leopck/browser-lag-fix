@@ -1,5 +1,5 @@
 /*
- * OPFS Guard — page-world guard.
+ * Browser Lag Fix — page-world guard.
  *
  * Runs in the page's own JavaScript world (MAIN) at document_start, before any site script.
  * It refuses requests that would grow a file in the browser's sandboxed site storage
@@ -14,11 +14,11 @@
  *
  * This file must stay self-contained (no imports): it is injected as a classic script.
  */
-(function opfsGuard(root) {
+(function lagFix(root) {
   'use strict';
 
-  const EVENT_REPORT = '__opfs_guard_report__';
-  const BOOT_KEY = '__opfsGuardBootConfig__';
+  const EVENT_REPORT = '__lag_fix_report__';
+  const BOOT_KEY = '__lagFixBootConfig__';
   const GiB = 1024 ** 3;
 
   /** Defaults apply until the extension delivers the user's settings (a few ms after start). */
@@ -73,8 +73,8 @@
    * @param {(event: object) => void} report
    */
   function install(global, getConfig, report) {
-    if (global.__opfsGuardInstalled__) return;
-    Object.defineProperty(global, '__opfsGuardInstalled__', { value: true });
+    if (global.__lagFixInstalled__) return;
+    Object.defineProperty(global, '__lagFixInstalled__', { value: true });
 
     const nativeToString = Function.prototype.toString;
     const disguise = (wrapper, original) => {
@@ -171,8 +171,8 @@
   }
 
   // --- test hook -----------------------------------------------------------------------------
-  if (root && root.__OPFS_GUARD_TEST__) {
-    root.__OPFS_GUARD_EXPORTS__ = { decide, impliedSize, install, quotaError, DEFAULT_CONFIG, EVENT_REPORT, BOOT_KEY };
+  if (root && root.__LAG_FIX_TEST__) {
+    root.__LAG_FIX_EXPORTS__ = { decide, impliedSize, install, quotaError, DEFAULT_CONFIG, EVENT_REPORT, BOOT_KEY };
     return;
   }
 

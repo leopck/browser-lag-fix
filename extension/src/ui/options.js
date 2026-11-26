@@ -53,7 +53,7 @@ $('form').addEventListener('submit', async ev => {
 $('exportBtn').addEventListener('click', async () => {
   const data = await chrome.storage.local.get(['stats', 'events']);
   const blob = new Blob([JSON.stringify({ exported: new Date().toISOString(), ...data }, null, 2)], { type: 'application/json' });
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'opfs-guard-log.json' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'browser-lag-fix-log.json' });
   a.click();
   URL.revokeObjectURL(a.href);
 });

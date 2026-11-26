@@ -47,7 +47,7 @@ Counters are informational only and never change enforcement.
 ## Volume isolation
 
 **How it works.** Each profile's `File System` directory becomes a junction to a folder on a
-dynamically expanding VHDX (default 20 GB) mounted at `C:\OpfsGuard\mnt`. A `SYSTEM` startup task
+dynamically expanding VHDX (default 20 GB) mounted at `C:\BrowserLagFix\mnt`. A `SYSTEM` startup task
 re-attaches the disk on boot. A logon task redirects profiles created later.
 
 ### Known gaps
@@ -55,6 +55,6 @@ re-attaches the disk on boot. A logon task redirects profiles created later.
 | Gap | Impact | Mitigation |
 |---|---|---|
 | **Quota still leaks disk size.** Chromium computes the quota from the profile's drive, and a probe that ignores non-quota errors still finds ~60% of the system disk. | Fingerprinting only; no lag. | Use the extension as well. |
-| **Virtual disk not attached** (startup task disabled or failed). | Junctions dangle, and sites cannot use OPFS until it is fixed. Other browser data is unaffected. | `Get-OpfsGuardStatus`; `Mount-OpfsVolume`; the log at `C:\OpfsGuard\opfsguard.log`. |
+| **Virtual disk not attached** (startup task disabled or failed). | Junctions dangle, and sites cannot use OPFS until it is fixed. Other browser data is unaffected. | `Get-BrowserLagFixStatus`; `Mount-BrowserLagFixVolume`; the log at `C:\BrowserLagFix\browserlagfix.log`. |
 | **Other storage types** (IndexedDB, Cache Storage) stay on the system drive. | They are written with real data, so they do not exhibit the sparse-allocation problem. | None needed. |
 | **WebView2 apps** keep separate user-data folders. | Not covered by default. | Pass `-UserDataRoot` explicitly. |

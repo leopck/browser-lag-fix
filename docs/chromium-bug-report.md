@@ -2,7 +2,7 @@
 
 **Component:** Blink>Storage>FileSystem (OPFS) / Storage>Quota
 **Platform:** Windows 11 (10.0.26200), NTFS system drive, 2 TB NVMe SSD
-**Reproduction & tooling:** https://github.com/leopck/opfs-guard (`repro/probe.html`, `diagnostics/`)
+**Reproduction & tooling:** https://github.com/leopck/browser-lag-fix (`repro/probe.html`, `diagnostics/`)
 **Version:** Microsoft Edge 158.0.4370.33 (Chromium 158). Chrome on Windows should use the same code path but has not been tested.
 
 ## Summary

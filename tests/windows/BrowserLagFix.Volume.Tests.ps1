@@ -7,7 +7,7 @@
 #>
 
 BeforeAll {
-    $modulePath = Join-Path $PSScriptRoot '..\..\windows\OpfsGuard.Volume\OpfsGuard.Volume.psd1'
+    $modulePath = Join-Path $PSScriptRoot '..\..\windows\BrowserLagFix.Volume\BrowserLagFix.Volume.psd1'
     Import-Module $modulePath -Force
 
     function Initialize-FakeUserData {
@@ -32,7 +32,7 @@ BeforeAll {
     }
 }
 
-Describe 'Get-OpfsBrowserProfile' {
+Describe 'Get-BrowserLagFixProfile' {
     BeforeEach {
         $script:ud = Join-Path $TestDrive ('ud-' + [guid]::NewGuid())
         $script:root = Join-Path $TestDrive ('root-' + [guid]::NewGuid())
@@ -40,18 +40,18 @@ Describe 'Get-OpfsBrowserProfile' {
     }
 
     It 'finds only directories that contain a Preferences file' {
-        $p = @(Get-OpfsBrowserProfile -UserDataRoot $ud -Root $root)
+        $p = @(Get-BrowserLagFixProfile -UserDataRoot $ud -Root $root)
         $p.Profile | Sort-Object | Should -Be @('Default', 'Profile 1')
         $p.State | Select-Object -Unique | Should -Be 'Local'
         $p[0].Browser | Should -Be 'Custom'
     }
 
-    It 'classifies a junction into the OpfsGuard mount as Redirected' {
+    It 'classifies a junction into the BrowserLagFix mount as Redirected' {
         $target = Join-Path $root 'mnt\x\Default\File System'
         New-Item -ItemType Directory -Force -Path $target | Out-Null
         Remove-Item -LiteralPath (Join-Path $ud 'Default\File System') -Recurse -Force
         New-Item -ItemType Junction -Path (Join-Path $ud 'Default\File System') -Target $target | Out-Null
-        (Get-OpfsBrowserProfile -UserDataRoot $ud -Root $root | Where-Object Profile -eq 'Default').State | Should -Be 'Redirected'
+        (Get-BrowserLagFixProfile -UserDataRoot $ud -Root $root | Where-Object Profile -eq 'Default').State | Should -Be 'Redirected'
     }
 
     It 'classifies a junction elsewhere as RedirectedElsewhere and leaves it to the user' {
@@ -59,23 +59,23 @@ Describe 'Get-OpfsBrowserProfile' {
         New-Item -ItemType Directory -Force -Path $other | Out-Null
         Remove-Item -LiteralPath (Join-Path $ud 'Default\File System') -Recurse -Force
         New-Item -ItemType Junction -Path (Join-Path $ud 'Default\File System') -Target $other | Out-Null
-        (Get-OpfsBrowserProfile -UserDataRoot $ud -Root $root | Where-Object Profile -eq 'Default').State | Should -Be 'RedirectedElsewhere'
+        (Get-BrowserLagFixProfile -UserDataRoot $ud -Root $root | Where-Object Profile -eq 'Default').State | Should -Be 'RedirectedElsewhere'
     }
 
     It 'reports Missing for a profile that never used site file storage' {
         Remove-Item -LiteralPath (Join-Path $ud 'Profile 1\File System') -Recurse -Force
-        (Get-OpfsBrowserProfile -UserDataRoot $ud -Root $root | Where-Object Profile -eq 'Profile 1').State | Should -Be 'Missing'
+        (Get-BrowserLagFixProfile -UserDataRoot $ud -Root $root | Where-Object Profile -eq 'Profile 1').State | Should -Be 'Missing'
     }
 }
 
-Describe 'Get-OpfsProfileKey' {
+Describe 'Get-BrowserLagFixProfileKey' {
     It 'is stable for a path and distinct across user-data roots' {
-        InModuleScope OpfsGuard.Volume {
+        InModuleScope BrowserLagFix.Volume {
             $a = [pscustomobject]@{ Browser = 'Edge'; Profile = 'Default'; UserDataRoot = 'C:\A\User Data' }
             $b = [pscustomobject]@{ Browser = 'Edge'; Profile = 'Default'; UserDataRoot = 'C:\B\User Data' }
-            Get-OpfsProfileKey -ProfileInfo $a | Should -Be (Get-OpfsProfileKey -ProfileInfo $a)
-            Get-OpfsProfileKey -ProfileInfo $a | Should -Not -Be (Get-OpfsProfileKey -ProfileInfo $b)
-            Get-OpfsProfileKey -ProfileInfo $a | Should -Match '^Edge-[0-9a-f]{8}\\Default$'
+            Get-BrowserLagFixProfileKey -ProfileInfo $a | Should -Be (Get-BrowserLagFixProfileKey -ProfileInfo $a)
+            Get-BrowserLagFixProfileKey -ProfileInfo $a | Should -Not -Be (Get-BrowserLagFixProfileKey -ProfileInfo $b)
+            Get-BrowserLagFixProfileKey -ProfileInfo $a | Should -Match '^Edge-[0-9a-f]{8}\\Default$'
         }
     }
 }
@@ -84,25 +84,25 @@ Describe 'Install / Reconcile / Uninstall lifecycle' -Tag 'Integration' {
     BeforeAll {
         $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
         $script:skip = -not $isAdmin
-        $base = Join-Path $env:TEMP ('opfsguard-it-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
+        $base = Join-Path $env:TEMP ('browserlagfix-it-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
         $script:ud = Join-Path $base 'User Data'
-        $script:root = Join-Path $base 'OpfsGuard'
+        $script:root = Join-Path $base 'BrowserLagFix'
         Initialize-FakeUserData -Path $ud -Profiles 'Default', 'Profile 1' -FilesPerProfile 5
         $script:hashDefault = Get-TreeHash (Join-Path $ud 'Default\File System')
         $script:hashP1 = Get-TreeHash (Join-Path $ud 'Profile 1\File System')
     }
     AfterAll {
         if (-not $skip) {
-            try { Uninstall-OpfsGuardVolume -Root $root -Confirm:$false -ErrorAction SilentlyContinue } catch { Write-Verbose "cleanup: $_" }
-            $vhd = Join-Path $root 'opfsguard.vhdx'
+            try { Uninstall-BrowserLagFixVolume -Root $root -Confirm:$false -ErrorAction SilentlyContinue } catch { Write-Verbose "cleanup: $_" }
+            $vhd = Join-Path $root 'browserlagfix.vhdx'
             if (Test-Path $vhd) { Dismount-DiskImage -ImagePath $vhd -ErrorAction SilentlyContinue | Out-Null }
             Remove-Item -LiteralPath (Split-Path $ud) -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 
     It 'installs: creates the volume and redirects every profile without losing data' -Skip:$skip {
-        Install-OpfsGuardVolume -Root $root -SizeGB 0.1 -UserDataRoot $ud -SkipScheduledTasks -Confirm:$false | Out-Null
-        $status = Get-OpfsGuardStatus -Root $root
+        Install-BrowserLagFixVolume -Root $root -SizeGB 0.1 -UserDataRoot $ud -SkipScheduledTasks -Confirm:$false | Out-Null
+        $status = Get-BrowserLagFixStatus -Root $root
         $status.Attached | Should -BeTrue
         $status.Profiles.State | Select-Object -Unique | Should -Be 'Redirected'
         (Get-Item -LiteralPath (Join-Path $ud 'Default\File System') -Force).LinkType | Should -Be 'Junction'
@@ -111,8 +111,8 @@ Describe 'Install / Reconcile / Uninstall lifecycle' -Tag 'Integration' {
     }
 
     It 'is idempotent when run again' -Skip:$skip {
-        { Install-OpfsGuardVolume -Root $root -SizeGB 0.1 -UserDataRoot $ud -SkipScheduledTasks -Confirm:$false | Out-Null } | Should -Not -Throw
-        (Get-OpfsGuardStatus -Root $root).Profiles.State | Select-Object -Unique | Should -Be 'Redirected'
+        { Install-BrowserLagFixVolume -Root $root -SizeGB 0.1 -UserDataRoot $ud -SkipScheduledTasks -Confirm:$false | Out-Null } | Should -Not -Throw
+        (Get-BrowserLagFixStatus -Root $root).Profiles.State | Select-Object -Unique | Should -Be 'Redirected'
     }
 
     It 'confines an oversized file to the virtual disk (the actual fix)' -Skip:$skip {
@@ -129,12 +129,12 @@ Describe 'Install / Reconcile / Uninstall lifecycle' -Tag 'Integration' {
 
     It 'reconcile redirects a profile created after install' -Skip:$skip {
         Initialize-FakeUserData -Path $ud -Profiles 'Profile 2' -FilesPerProfile 2
-        Invoke-OpfsGuardReconcile -Root $root -Confirm:$false
-        (Get-OpfsBrowserProfile -UserDataRoot $ud -Root $root | Where-Object Profile -eq 'Profile 2').State | Should -Be 'Redirected'
+        Invoke-BrowserLagFixReconcile -Root $root -Confirm:$false
+        (Get-BrowserLagFixProfile -UserDataRoot $ud -Root $root | Where-Object Profile -eq 'Profile 2').State | Should -Be 'Redirected'
     }
 
     It 'uninstalls: data back in place, no junctions, virtual disk gone' -Skip:$skip {
-        Uninstall-OpfsGuardVolume -Root $root -Confirm:$false
+        Uninstall-BrowserLagFixVolume -Root $root -Confirm:$false
         (Get-Item -LiteralPath (Join-Path $ud 'Default\File System') -Force).LinkType | Should -BeNullOrEmpty
         Get-TreeHash (Join-Path $ud 'Default\File System') | Should -Be $hashDefault
         Get-TreeHash (Join-Path $ud 'Profile 1\File System') | Should -Be $hashP1

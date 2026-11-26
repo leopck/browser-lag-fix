@@ -1,4 +1,4 @@
-# OPFS Guard: browser extension
+# Browser Lag Fix: browser extension
 
 A Manifest V3 extension for Chromium-based browsers (Chrome, Edge, Brave, Vivaldi, Opera; version 111+).
 
@@ -49,5 +49,5 @@ No network access, no remote code, no analytics. See [PRIVACY.md](../PRIVACY.md)
 ```bash
 npm run gen       # regenerate src/boot/* after changing settings.js
 npm run icons     # re-render icons (Pillow)
-npm run package   # dist/opfs-guard-<version>.zip for store upload
+npm run package   # dist/browser-lag-fix-<version>.zip for store upload
 ```

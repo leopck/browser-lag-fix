@@ -1,6 +1,6 @@
-# Privacy policy: OPFS Guard browser extension
+# Privacy policy: Browser Lag Fix browser extension
 
-OPFS Guard runs entirely on your device.
+Browser Lag Fix runs entirely on your device.
 
 - **No data leaves your browser.** The extension makes no network requests, loads no remote code and
   contains no analytics or telemetry.
@@ -14,5 +14,5 @@ OPFS Guard runs entirely on your device.
   where a request was refused, and anything about you.
 - **Your control:** *Settings → Clear log* deletes the counters and log. Uninstalling removes everything.
 
-The Windows module (`OpfsGuard.Volume`) only writes to `C:\OpfsGuard` (or the folder you choose) and
+The Windows module (`BrowserLagFix.Volume`) only writes to `C:\BrowserLagFix` (or the folder you choose) and
 the browser profile folders it redirects. It sends nothing anywhere.

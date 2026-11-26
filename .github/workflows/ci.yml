@@ -30,7 +30,7 @@ jobs:
       - run: npm run package
       - uses: actions/upload-artifact@v4
         with:
-          name: opfs-guard-extension
+          name: browser-lag-fix-extension
           path: dist/*.zip
           if-no-files-found: error
 
@@ -63,7 +63,7 @@ jobs:
           Invoke-Pester -Configuration $c
       - name: Module manifest is valid
         shell: pwsh
-        run: Test-ModuleManifest windows/OpfsGuard.Volume/OpfsGuard.Volume.psd1 | Format-List Name, Version, ExportedFunctions
+        run: Test-ModuleManifest windows/BrowserLagFix.Volume/BrowserLagFix.Volume.psd1 | Format-List Name, Version, ExportedFunctions
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -17,11 +17,11 @@ Get-WinEvent -LogName Microsoft-Windows-Ntfs/Operational |
 ## 2. Catch it as it happens
 
 ```powershell
-wpr -start .\diagnostics\opfs-guard.wprp           # flight recorder: keeps the last ~minute in memory
+wpr -start .\diagnostics\browser-lag-fix.wprp           # flight recorder: keeps the last ~minute in memory
 .\diagnostics\Watch-FreeSpace.ps1 -SaveTrace       # logs dips and saves the trace automatically
 ```
 
-On a dip, `%USERPROFILE%\OpfsGuardDiagnostics\free-space.log` gets:
+On a dip, `%USERPROFILE%\BrowserLagFixDiagnostics\free-space.log` gets:
 
 ```
 DIP START free=62.2 GB (baseline 1093.3 GB)
@@ -30,7 +30,7 @@ DIP START free=62.2 GB (baseline 1093.3 GB)
 DIP END free=1092.6 GB (min 62.2 GB)
 ```
 
-`opfs-guard.wprp` captures CPU sampling, context switches, ready-thread stacks, disk I/O, file I/O
+`browser-lag-fix.wprp` captures CPU sampling, context switches, ready-thread stacks, disk I/O, file I/O
 (including resizes with stacks), DPC/ISR, and GPU/DWM activity. Its buffers are capped at about
 640 MB of kernel memory. The stock `GeneralProfile` + `CPU` + `GPU` + `DiskIO` profiles reserved
 about 6 GB on the test machine, enough to cause lag of their own.

@@ -30,7 +30,7 @@ entire volume bitmap") accompanied it. `chkdsk /scan` found no corruption.
 
 ### 2. A flight-recorder trace: who allocated the space
 
-A Windows Performance Recorder trace in memory mode ([profile](../diagnostics/opfs-guard.wprp)) was
+A Windows Performance Recorder trace in memory mode ([profile](../diagnostics/browser-lag-fix.wprp)) was
 saved automatically when free space dipped. CPU sampling with stacks showed the **browser process**
 (not a renderer) doing:
 

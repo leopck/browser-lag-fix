@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds dist/opfs-guard-<version>.zip, ready for the Chrome Web Store / Edge Add-ons upload.
+// Builds dist/browser-lag-fix-<version>.zip, ready for the Chrome Web Store / Edge Add-ons upload.
 // Uses only Node built-ins (a minimal deflate ZIP writer) so packaging has no dependencies.
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
@@ -50,6 +50,6 @@ end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(files.length, 8); end.writeU
 end.writeUInt32LE(centralBuf.length, 12); end.writeUInt32LE(offset, 16);
 
 await mkdir(join(repo, 'dist'), { recursive: true });
-const out = join(repo, 'dist', `opfs-guard-${manifest.version}.zip`);
+const out = join(repo, 'dist', `browser-lag-fix-${manifest.version}.zip`);
 await writeFile(out, Buffer.concat([...locals, centralBuf, end]));
 console.log(`${relative(repo, out)}  (${files.length} files)`);

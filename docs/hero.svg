@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 460" width="1200" height="460" role="img" aria-labelledby="t d">
+  <title id="t">Free space on C: while a shopping site loads</title>
+  <desc id="d">Without protection, free space on a 2 TB drive falls from 1,092 GB to 2 GB within seconds of a page loading, and disk writes stall. With Browser Lag Fix it stays flat.</desc>
+  <style>
+    .bg { fill: #ffffff; } .ink { fill: #1d1d1f; } .muted { fill: #6e6e73; } .grid { stroke: #e5e5ea; }
+    .bad { stroke: #ff3b30; } .badf { fill: #ff3b30; } .good { stroke: #34c759; } .goodf { fill: #34c759; }
+    .stall { fill: #ff3b30; fill-opacity: .08; } .card { fill: #f5f5f7; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0d1117; } .ink { fill: #f5f5f7; } .muted { fill: #8b949e; } .grid { stroke: #30363d; }
+      .bad { stroke: #ff6961; } .badf { fill: #ff6961; } .good { stroke: #3fd36b; } .goodf { fill: #3fd36b; }
+      .stall { fill-opacity: .14; } .card { fill: #161b22; }
+    }
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  </style>
+  <rect class="bg" width="1200" height="460" rx="18"/>
+
+  <text class="ink" x="48" y="62" font-size="28" font-weight="700">You opened a shopping site. It reserved 1 TB of your SSD.</text>
+  <text class="muted" x="48" y="94" font-size="17">Free space on C: (2 TB NVMe, Edge on Windows 11), measured. A fingerprinting script grows a hidden site file to ~60% of the drive.</text>
+
+  <!-- plot area: x 110..1150 (0..60 s), y 130..400 (1100..0 GB) -->
+  <g class="grid" stroke-width="1">
+    <line x1="110" y1="130" x2="1150" y2="130"/><line x1="110" y1="220" x2="1150" y2="220"/>
+    <line x1="110" y1="310" x2="1150" y2="310"/><line x1="110" y1="400" x2="1150" y2="400"/>
+  </g>
+  <g class="muted" font-size="14" text-anchor="end">
+    <text x="98" y="135">1.1 TB</text><text x="98" y="225">733 GB</text><text x="98" y="315">367 GB</text><text x="98" y="405">0</text>
+  </g>
+  <g class="muted" font-size="14" text-anchor="middle">
+    <text x="110" y="426">0 s</text><text x="370" y="426">15 s</text><text x="630" y="426">30 s</text><text x="890" y="426">45 s</text><text x="1150" y="426">60 s</text>
+  </g>
+
+  <!-- stall band -->
+  <rect class="stall" x="283" y="130" width="560" height="270"/>
+  <text class="badf" x="680" y="300" font-size="15" font-weight="600" text-anchor="middle">every app's disk writes stall (37–175 s in the wild)</text>
+
+  <!-- unprotected: flat at 1092 GB (y≈131), drop at ~10 s to 2 GB (y≈399.5), recover, smaller dips -->
+  <polyline class="bad" fill="none" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"
+    points="110,132 283,132 292,399 440,399 452,160 470,160 478,232 488,198 500,206 512,180 540,185 560,170 640,168 700,150 843,140 900,133 1150,132"/>
+  <circle class="badf" cx="292" cy="399" r="7"/>
+  <rect class="card" x="306" y="330" width="250" height="56" rx="10"/>
+  <text class="badf" x="320" y="354" font-size="17" font-weight="700">1,092 GB → 2 GB free</text>
+  <text class="muted" x="320" y="376" font-size="14">8–9 s per truncate() call</text>
+
+  <!-- protected: flat -->
+  <polyline class="good" fill="none" stroke-width="4" stroke-dasharray="0" points="110,128 1150,128"/>
+
+  <g font-size="15" font-weight="600">
+    <circle class="goodf" cx="842" cy="190" r="6"/><text class="ink" x="856" y="195">With Browser Lag Fix: unchanged, &lt; 1 ms</text>
+    <circle class="badf" cx="842" cy="216" r="6"/><text class="ink" x="856" y="221">Unprotected Chrome / Edge on Windows</text>
+  </g>
+</svg>
