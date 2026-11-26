@@ -28,7 +28,7 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run package
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: browser-lag-fix-extension
           path: dist/*.zip
@@ -64,7 +64,7 @@ jobs:
       - name: Module manifest is valid
         shell: pwsh
         run: Test-ModuleManifest windows/BrowserLagFix.Volume/BrowserLagFix.Volume.psd1 | Format-List Name, Version, ExportedFunctions
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pester-results
