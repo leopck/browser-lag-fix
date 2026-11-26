@@ -212,8 +212,8 @@ function Mount-BrowserLagFixVolume {
         }
     }
     $part = $img | Get-Disk | Get-Partition | Where-Object Type -ne 'Reserved' | Select-Object -First 1
-    $mount = Join-Path $Root 'mnt'
-    $paths = @($part.AccessPaths) | ForEach-Object { $_.TrimEnd('\') }
+    $mount = ConvertTo-LagFixLongPath -Path (Join-Path $Root 'mnt')
+    $paths = @($part.AccessPaths) | Where-Object { $_ -notmatch '^\\\\\?\\' } | ForEach-Object { ConvertTo-LagFixLongPath -Path $_ }
     if ($mount -notin $paths -and $PSCmdlet.ShouldProcess($mount, 'Add mount point')) {
         New-Item -ItemType Directory -Force -Path $mount | Out-Null
         Add-PartitionAccessPath -InputObject $part -AccessPath "$mount\"
