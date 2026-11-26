@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.etl
+*.vhdx
+results.jsonl
+testResults.xml
+pester.xml
+.DS_Store
+Thumbs.db

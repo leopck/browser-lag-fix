@@ -1,0 +1,48 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>OPFS truncate probe (repro)</title></head>
+<body>
+<h1>OPFS truncate probe</h1>
+<p>Minimal reproduction: mimics a fingerprinting script that binary-searches the largest size
+<code>FileSystemWritableFileStream.truncate()</code> will accept. Watch C: free space while it runs.</p>
+<pre id="out"></pre>
+<script>
+const out = document.getElementById('out');
+const results = [];
+const log = (o) => { results.push(o); out.textContent += JSON.stringify(o) + '\n'; };
+const GiB = 2 ** 30;
+async function tryTruncate(root, bytes) {
+  const name = 'probe-' + Math.round(bytes / GiB) + '-' + Date.now();
+  const fh = await root.getFileHandle(name, { create: true });
+  const w = await fh.createWritable({ keepExistingData: false });
+  const t0 = performance.now();
+  let ok = true, err = null;
+  try { await w.truncate(bytes); } catch (e) { ok = false; err = e.name + ': ' + e.message; }
+  const ms = Math.round(performance.now() - t0);
+  try { await w.abort(); } catch (_) {}
+  try { await root.removeEntry(name); } catch (_) {}
+  log({ op: 'truncate', gib: +(bytes / GiB).toFixed(2), ok, ms, err });
+  return ok;
+}
+(async () => {
+  // ?delay=<ms> waits before probing, like real scripts that run after page load.
+  const delay = Number(new URLSearchParams(location.search).get('delay')) || 0;
+  if (delay) await new Promise(r => setTimeout(r, delay));
+  const est = await navigator.storage.estimate();
+  log({ op: 'estimate', usage: est.usage, quotaGiB: +(est.quota / GiB).toFixed(1), ua: navigator.userAgent });
+  const root = await navigator.storage.getDirectory();
+  // Same shape as the observed script: start at 8 TiB, halve until accepted, then refine.
+  // ?start=<GiB> starts lower (e.g. ?start=64 for a harmless smoke test of the extension).
+  const startGiB = Number(new URLSearchParams(location.search).get('start')) || 8192;
+  let hi = startGiB * GiB, lo = 0, size = hi, steps = 0;
+  while (steps++ < 24) {
+    const ok = await tryTruncate(root, size);
+    if (ok) lo = size; else hi = size;
+    if (lo === 0) size = size / 2; else size = (lo + hi) / 2;
+    if (lo > 0 && hi - lo < Math.max(GiB / 8, hi / 512)) break;
+  }
+  log({ op: 'done', largestAcceptedGiB: +(lo / GiB).toFixed(1) });
+  await fetch('/result', { method: 'POST', body: JSON.stringify(results) });
+  document.title = 'DONE';
+})().catch(async e => { log({ op: 'fatal', err: String(e) }); await fetch('/result', { method: 'POST', body: JSON.stringify(results) }); });
+</script>
+</body></html>

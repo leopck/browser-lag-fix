@@ -1,0 +1,38 @@
+name: Bug report
+description: Something in OPFS Guard doesn't work as described
+labels: [bug]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options: [Browser extension, Windows volume isolation, Reproduction page, Diagnostics, Documentation]
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. …\n2. …"
+    validations: { required: true }
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Edge 158.0.4370.33
+    validations: { required: true }
+  - type: input
+    id: os
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2 (26100)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: "Extension: Settings → Export log. Windows module: output of Get-OpfsGuardStatus and C:\\OpfsGuard\\opfsguard.log. Remove anything private."
+      render: text

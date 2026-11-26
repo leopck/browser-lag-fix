@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>OPFS Guard — Settings</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="options">
+  <header>
+    <img src="../../icons/icon-48.png" alt="" width="32" height="32">
+    <h1>OPFS Guard settings</h1>
+  </header>
+
+  <form id="form">
+    <fieldset>
+      <legend>Protection</legend>
+      <label class="row"><input type="checkbox" id="enabled"> Enable OPFS Guard</label>
+      <label class="row">Largest size a site may grow a file to
+        <select id="capGiB"></select>
+      </label>
+      <p class="hint">The default (10 GiB) matches the quota Chromium reports to sites, so a probing
+        script learns nothing new and legitimate sites are unaffected.</p>
+      <label class="row">When a request exceeds the limit
+        <select id="mode">
+          <option value="block">Refuse it (recommended)</option>
+          <option value="log">Allow it, but log it</option>
+        </select>
+      </label>
+      <label class="row"><input type="checkbox" id="diagnostics"> Record JavaScript call stacks for blocked requests (for bug reports)</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Allowed sites</legend>
+      <p class="hint">One hostname per line. Subdomains are included. Use this only for web apps that
+        genuinely need very large local files (video editors, offline databases).</p>
+      <textarea id="allowlist" rows="5" spellcheck="false" placeholder="example.com"></textarea>
+    </fieldset>
+
+    <div class="actions">
+      <button type="submit">Save</button>
+      <span id="saved" class="hint" role="status"></span>
+    </div>
+  </form>
+
+  <section>
+    <h2>Recent activity</h2>
+    <div class="actions">
+      <button id="exportBtn" type="button" class="secondary">Export log (JSON)</button>
+      <button id="clearBtn" type="button" class="secondary">Clear log</button>
+    </div>
+    <table id="events">
+      <thead><tr><th>Time</th><th>Site</th><th>API</th><th>Requested</th><th>Action</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run ci
+      - name: Check versions match the tag
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          ext=$(node -p "require('./extension/manifest.json').version")
+          mod=$(grep -oP "ModuleVersion\s*=\s*'\K[^']+" windows/OpfsGuard.Volume/OpfsGuard.Volume.psd1)
+          [ "$tag" = "$ext" ] && [ "$tag" = "$mod" ] || { echo "tag $tag, extension $ext, module $mod"; exit 1; }
+      - name: Package Windows module
+        run: |
+          cd windows && zip -r "../dist/OpfsGuard.Volume-${GITHUB_REF_NAME#v}.zip" OpfsGuard.Volume README.md
+      - name: Checksums
+        run: cd dist && sha256sum *.zip > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.zip
+            dist/SHA256SUMS.txt
+          generate_release_notes: true

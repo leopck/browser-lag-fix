@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>OPFS Guard</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="popup">
+  <header>
+    <img src="../../icons/icon-32.png" alt="" width="20" height="20">
+    <h1>OPFS Guard</h1>
+    <span id="state" class="pill"></span>
+  </header>
+
+  <section>
+    <div class="site" id="site">—</div>
+    <dl class="stats">
+      <div><dt>Blocked on this page</dt><dd id="tabCount">0</dd></div>
+      <div><dt>Blocked on this site (all time)</dt><dd id="siteCount">0</dd></div>
+      <div><dt>Largest request</dt><dd id="largest">—</dd></div>
+    </dl>
+    <p class="hint" id="capLine"></p>
+  </section>
+
+  <section class="actions">
+    <button id="allowBtn" type="button"></button>
+    <button id="optionsBtn" type="button" class="secondary">Settings</button>
+  </section>
+  <p class="hint">Allow-list changes apply when the page reloads.</p>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

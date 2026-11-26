@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WindowsPerformanceRecorder Version="1.0" Author="opfs-guard">
+  <Profiles>
+    <SystemCollector Id="SC_Opfs" Name="NT Kernel Logger">
+      <BufferSize Value="1024"/>
+      <Buffers Value="512"/>
+    </SystemCollector>
+    <EventCollector Id="EC_Opfs" Name="OPFS Guard Events">
+      <BufferSize Value="1024"/>
+      <Buffers Value="128"/>
+    </EventCollector>
+    <SystemProvider Id="SP_Opfs">
+      <Keywords>
+        <Keyword Value="ProcessThread"/>
+        <Keyword Value="Loader"/>
+        <Keyword Value="SampledProfile"/>
+        <Keyword Value="CSwitch"/>
+        <Keyword Value="ReadyThread"/>
+        <Keyword Value="DiskIO"/>
+        <Keyword Value="HardFaults"/>
+        <Keyword Value="FileIO"/>
+        <Keyword Value="FileIOInit"/>
+        <Keyword Value="DPC"/>
+        <Keyword Value="Interrupt"/>
+      </Keywords>
+      <Stacks>
+        <Stack Value="SampledProfile"/>
+        <Stack Value="ReadyThread"/>
+        <Stack Value="FileSetInformation"/>
+      </Stacks>
+    </SystemProvider>
+    <EventProvider Id="EP_Dxg" Name="802ec45a-1e99-4b83-9920-87c98277ba9d" Level="4"/>
+    <EventProvider Id="EP_Dwm" Name="Microsoft-Windows-Dwm-Core" Level="4"/>
+    <Profile Id="OpfsGuard.Verbose.Memory" Name="OpfsGuard" Description="OPFS Guard flight recorder: CPU, scheduling, disk and file I/O (incl. file resizes with stacks), GPU and DWM" LoggingMode="Memory" DetailLevel="Verbose">
+      <Collectors>
+        <SystemCollectorId Value="SC_Opfs"><SystemProviderId Value="SP_Opfs"/></SystemCollectorId>
+        <EventCollectorId Value="EC_Opfs"><EventProviders><EventProviderId Value="EP_Dxg"/><EventProviderId Value="EP_Dwm"/></EventProviders></EventCollectorId>
+      </Collectors>
+    </Profile>
+  </Profiles>
+</WindowsPerformanceRecorder>

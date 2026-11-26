@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  extension:
+    name: Extension (lint, test, package)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run gen:check
+      - run: npm run lint
+      - run: npm test
+      - run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opfs-guard-extension
+          path: dist/*.zip
+          if-no-files-found: error
+
+  windows:
+    name: Windows module (analyze, unit + integration tests)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Pester and PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -MinimumVersion 5.5.0 -Force -SkipPublisherCheck -Scope CurrentUser
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $r = 'windows', 'diagnostics', 'tests' | ForEach-Object { Invoke-ScriptAnalyzer -Path $_ -Recurse -Severity Warning, Error }
+          $r | Format-Table -AutoSize | Out-String | Write-Host
+          if ($r) { throw "$($r.Count) analyzer finding(s)" }
+      - name: Pester (unit + integration; runners are elevated)
+        shell: pwsh
+        run: |
+          $c = New-PesterConfiguration
+          $c.Run.Path = 'tests/windows'
+          $c.Run.Exit = $true
+          $c.Output.Verbosity = 'Detailed'
+          $c.TestResult.Enabled = $true
+          $c.TestResult.OutputPath = 'pester.xml'
+          Invoke-Pester -Configuration $c
+      - name: Module manifest is valid
+        shell: pwsh
+        run: Test-ModuleManifest windows/OpfsGuard.Volume/OpfsGuard.Volume.psd1 | Format-List Name, Version, ExportedFunctions
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pester-results
+          path: pester.xml

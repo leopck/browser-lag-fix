@@ -1,0 +1,23 @@
+{
+  "name": "opfs-guard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Protects Windows PCs from websites that reserve huge OPFS files in Chromium browsers.",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "gen": "node tools/gen-boot-configs.mjs",
+    "gen:check": "node tools/gen-boot-configs.mjs --check",
+    "icons": "python tools/make-icons.py",
+    "lint": "eslint .",
+    "test": "node --test \"tests/extension/*.test.js\"",
+    "package": "node tools/package-extension.mjs",
+    "ci": "npm run gen:check && npm run lint && npm test && npm run package"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0"
+  }
+}
