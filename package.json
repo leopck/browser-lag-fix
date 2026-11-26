@@ -1,6 +1,6 @@
 {
   "name": "browser-lag-fix",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Protects Windows PCs from websites that reserve huge OPFS files in Chromium browsers.",
   "license": "MIT",

@@ -1,6 +1,6 @@
 @{
     RootModule           = 'BrowserLagFix.Volume.psm1'
-    ModuleVersion        = '1.0.0'
+    ModuleVersion        = '1.0.1'
     GUID                 = '7c3a2b1e-5d4f-4a8e-9b61-2f0c9e8d4a17'
     Author               = 'Browser Lag Fix contributors'
     CompanyName          = 'Community'

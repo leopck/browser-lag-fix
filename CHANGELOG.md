@@ -5,6 +5,17 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-26
+
+### Changed
+- Renamed from OPFS Guard to **Browser Lag Fix**. The PowerShell module is now `BrowserLagFix.Volume`
+  (`Install-BrowserLagFixVolume`, `Get-BrowserLagFixStatus`, …) and installs to `C:\BrowserLagFix`.
+
+### Fixed
+- Volume module: paths containing 8.3 short names (for example `C:\Users\RUNNER~1`) were compared in
+  their short form, so redirected profiles could be reported as `RedirectedElsewhere` and re-mounting
+  failed with "access path already in use".
+
 ## [1.0.0] - 2026-11-26
 
 ### Added
