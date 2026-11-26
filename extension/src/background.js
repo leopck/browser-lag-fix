@@ -46,7 +46,7 @@ async function protectOpenTabs() {
   const allowed = host => s.allowlist.some(h => host === h || host.endsWith(`.${h}`));
   const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
   await Promise.all(tabs.map(async tab => {
-    let host = '';
+    let host;
     try { host = new URL(tab.url).hostname; } catch (_) { return; }
     if (allowed(host)) return;
     try {

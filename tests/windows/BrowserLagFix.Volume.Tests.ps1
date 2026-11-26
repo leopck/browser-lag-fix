@@ -80,6 +80,22 @@ Describe 'Get-BrowserLagFixProfileKey' {
     }
 }
 
+Describe 'ConvertTo-LagFixLongPath' {
+    It 'expands 8.3 short names, including in paths that do not exist yet' {
+        $long = Join-Path $TestDrive 'a long directory name for short-name tests'
+        New-Item -ItemType Directory -Path $long | Out-Null
+        $short = (& cmd.exe /c "for %I in (""$long"") do @echo %~sI").Trim()
+        if ($short -notmatch '~') { Set-ItResult -Skipped -Because '8.3 names are disabled on this volume'; return }
+        InModuleScope BrowserLagFix.Volume -Parameters @{ Long = $long; Short = $short } {
+            param($Long, $Short)
+            $expected = ConvertTo-LagFixLongPath -Path $Long
+            ConvertTo-LagFixLongPath -Path $Short | Should -Be $expected
+            ConvertTo-LagFixLongPath -Path (Join-Path $Short 'mnt\x') | Should -Be (Join-Path $expected 'mnt\x')
+            ConvertTo-LagFixLongPath -Path "$Long\" | Should -Be $expected
+        }
+    }
+}
+
 Describe 'Install / Reconcile / Uninstall lifecycle' -Tag 'Integration' {
     BeforeAll {
         $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)

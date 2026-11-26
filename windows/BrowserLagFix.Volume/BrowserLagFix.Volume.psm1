@@ -71,6 +71,31 @@ function Get-LagFixItemStatistic {
     [pscustomobject]@{ Count = $files.Count; Bytes = [long](($files | Measure-Object Length -Sum).Sum) }
 }
 
+function ConvertTo-LagFixLongPath {
+    <# Expands 8.3 short names (C:\Users\RUNNER~1\...) so paths can be compared reliably. #>
+    param([Parameter(Mandatory)][string]$Path)
+    $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
+    if ($full -notmatch '~') { return $full }
+    if (-not ('BrowserLagFix.NativePath' -as [type])) {
+        Add-Type -Namespace BrowserLagFix -Name NativePath -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+public static extern uint GetLongPathName(string shortPath, System.Text.StringBuilder longPath, uint size);
+'@
+    }
+    # Expand the longest existing prefix; the rest of the path may not exist yet.
+    $existing = $full; $rest = ''
+    while ($existing -and -not (Test-Path -LiteralPath $existing)) {
+        $rest = (Join-Path (Split-Path $existing -Leaf) $rest).TrimEnd('\')
+        $existing = Split-Path $existing -Parent
+    }
+    if (-not $existing) { return $full }
+    $sb = New-Object System.Text.StringBuilder 1024
+    if ([BrowserLagFix.NativePath]::GetLongPathName($existing, $sb, $sb.Capacity) -eq 0) { return $full }
+    $long = $sb.ToString().TrimEnd('\')
+    if ($rest) { return (Join-Path $long $rest) }
+    return $long
+}
+
 function Get-LagFixLinkTarget {
     param([Parameter(Mandatory)][string]$Path)
     $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
@@ -132,7 +157,7 @@ function Get-BrowserLagFixProfile {
             if (Test-Path -LiteralPath $p) { $roots += [pscustomobject]@{ Browser = $name; Path = $p; Process = $script:KnownBrowsers[$name].Process } }
         }
     }
-    $mount = Join-Path $Root 'mnt'
+    $mount = ConvertTo-LagFixLongPath -Path (Join-Path $Root 'mnt')
     foreach ($r in $roots) {
         $profiles = Get-ChildItem -LiteralPath $r.Path -Directory -Force -ErrorAction SilentlyContinue |
             Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'Preferences') }
@@ -140,7 +165,7 @@ function Get-BrowserLagFixProfile {
             $fs = Join-Path $p.FullName 'File System'
             $target = Get-LagFixLinkTarget -Path $fs
             $state = if (-not (Test-Path -LiteralPath $fs)) { if ($target) { 'Redirected' } else { 'Missing' } }
-                     elseif ($target) { if ($target.StartsWith($mount, [StringComparison]::OrdinalIgnoreCase)) { 'Redirected' } else { 'RedirectedElsewhere' } }
+                     elseif ($target) { if ((ConvertTo-LagFixLongPath -Path $target).StartsWith($mount, [StringComparison]::OrdinalIgnoreCase)) { 'Redirected' } else { 'RedirectedElsewhere' } }
                      else { 'Local' }
             [pscustomobject]@{
                 PSTypeName     = 'BrowserLagFix.Profile'
@@ -303,7 +328,7 @@ function Install-BrowserLagFixVolume {
         [switch]$SkipScheduledTasks
     )
     Assert-LagFixAdmin
-    $Root = [IO.Path]::GetFullPath($Root)
+    $Root = ConvertTo-LagFixLongPath -Path $Root
     $profiles = @(Get-BrowserLagFixProfile -Browser $Browser -UserDataRoot $UserDataRoot -Root $Root)
     if (-not $profiles) { throw 'No Chromium browser profiles found.' }
     if (Test-LagFixBrowserRunning -Profiles $profiles) {
